@@ -86,27 +86,71 @@ This project aims to create a robust, automated solution for bridging a **home-b
 ```mermaid
 graph TD
     subgraph "Home Cluster"
-        H1[Talos Cluster]
-        D1[KubeSpan Discovery/Headscale]
+        H1[Talos Control Plane]
+        H2[Talos Worker Nodes]
+        KS1[KubeSpan Connector]
+        CP[Cloud Provisioner]
+        CM[Cloud Monitor]
     end
 
-    subgraph "Cloud Cluster(s)"
-        C1[Talos Cluster - Akamai/Linode]
-        C2[Talos Cluster - Hetzner]
+    subgraph "Cloud Cluster 1"
+        C1N1[Talos Node 1]
+        C1N2[Talos Node 2]
+        C1N3[Talos Node 3]
+        KS2[KubeSpan Connector]
         IC[Ingress Controller]
-        DNS[ExternalDNS]
+        HF[Home Service Forwarder]
+        ED[ExternalDNS Controller]
     end
 
-    H1 <--> D1
-    H1 <--> C1
-    H1 <--> C2
-    C1 <--> IC
-    C2 <--> IC
-    IC <--> DNS
-    DNS --> Domain[(home-cluster.net)]
+    DNS[(DNS Provider)]
+    Internet((Internet))
+
+    %% Home cluster connections
+    H1 <--> H2
+    H1 <--> KS1
+    H2 <--> KS1
+    H1 <--> CP
+    H1 <--> CM
+
+    %% Cloud cluster internal connections
+    C1N1 <--> C1N2
+    C1N2 <--> C1N3
+    C1N3 <--> C1N1
+    C1N1 <--> KS2
+    C1N2 <--> KS2
+    C1N3 <--> KS2
+    C1N1 <--> IC
+    C1N2 <--> IC
+    C1N3 <--> IC
+    IC <--> HF
+    ED <--> DNS
+
+    %% Cross-cluster connections
+    KS1 <--> KS2
+    CP -- provisions --> Cloud Cluster 1
+    CM -- monitors --> Cloud Cluster 1
+    
+    %% External connections
+    Internet <--> IC
+    Internet <--> DNS
 ```
 
-The diagram illustrates how the home-based Talos cluster connects to cloud-based clusters (on Linode/Akamai and Hetzner) through KubeSpan, with the cloud clusters handling ingress and DNS management to expose home services.
+This refined architecture shows:
+
+1. **Home Cluster**: Contains the Talos control plane and worker nodes, along with components for:
+   - KubeSpan connectivity to cloud clusters
+   - Cloud Provisioner for automatically deploying cloud infrastructure
+   - Cloud Monitor for checking health and availability of cloud resources
+
+2. **Cloud Cluster**: Each cloud cluster (shown is Cloud Cluster 1) consists of:
+   - Three Talos nodes forming a Kubernetes cluster
+   - KubeSpan Connector for secure networking with the home cluster
+   - Ingress Controller handling external traffic
+   - Home Service Forwarder routing traffic to the appropriate services in the home cluster
+   - ExternalDNS Controller managing DNS records
+
+The system allows for multiple cloud clusters to be provisioned as needed, with automatic failover capabilities managed by the home cluster components.
 
 ---
 
