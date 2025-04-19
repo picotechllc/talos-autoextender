@@ -1,0 +1,8 @@
+
+type(scope): description
+
+# Types: feat, fix, docs, style, refactor, test, chore
+# Scope: provider, network, dns, cluster, etc.
+# Description: present tense, lowercase, no period
+#
+# Example: feat(provider): add linode cloud integration
