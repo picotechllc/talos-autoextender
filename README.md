@@ -128,8 +128,8 @@ graph TD
 
     %% Cross-cluster connections
     KS1 <--> KS2
-    CP -- provisions --> Cloud Cluster 1
-    CM -- monitors --> Cloud Cluster 1
+    CP -- "provisions" --> C1N1
+    CM -- "monitors" --> C1N1
     
     %% External connections
     Internet <--> IC
