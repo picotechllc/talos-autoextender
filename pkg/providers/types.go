@@ -1,5 +1,8 @@
-
 package providers
+
+import (
+	"fmt"
+)
 
 // Provider represents a cloud provider (Linode, Hetzner etc)
 type Provider struct {
