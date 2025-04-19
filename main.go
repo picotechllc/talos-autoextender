@@ -26,4 +26,19 @@ type DNSManager struct {
 
 func main() {
 	log.Println("Talos Auto-extender starting...")
+
+	manager := &ClusterManager{
+		providers: make(map[string]CloudProvider),
+	}
+
+	networkMgr := &NetworkManager{
+		kubeSpanEnabled: true,
+	}
+
+	dnsMgr := &DNSManager{
+		provider: "cloudflare",
+		domain:   "example.com",
+	}
+
+	log.Println("Managers initialized, ready for cluster operations")
 }
