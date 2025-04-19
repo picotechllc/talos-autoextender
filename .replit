@@ -1,0 +1,3 @@
+modules = ["go-1.23"]
+[nix]
+channel = "stable-24_05"
