@@ -1,3 +1,4 @@
+[![Coverage Status](https://coveralls.io/repos/github/picotechllc/talos-autoextender/badge.svg?branch=main)](https://coveralls.io/github/picotechllc/talos-autoextender?branch=main)
 # talos-autoextender
 automatically extend your home talos cluster into the cloud
 
