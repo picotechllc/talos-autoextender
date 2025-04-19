@@ -60,23 +60,32 @@ func setupMockLinodeAPI(t *testing.T) (*httptest.Server, *LinodeProvider) {
 		// Return different responses based on the endpoint
 		switch r.URL.Path {
 		case "/v4/regions":
-			json.NewEncoder(w).Encode(linodego.RegionsPagedResponse{
+			if err := json.NewEncoder(w).Encode(linodego.RegionsPagedResponse{
 				Data: []linodego.Region{
 					{ID: "us-east", Country: "us"},
 					{ID: "eu-west", Country: "uk"},
 				},
-			})
+			}); err != nil {
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+				return
+			}
 		case "/v4/images":
-			json.NewEncoder(w).Encode(linodego.ImagesPagedResponse{
+			if err := json.NewEncoder(w).Encode(linodego.ImagesPagedResponse{
 				Data: []linodego.Image{
 					{ID: "linode/debian11", Label: "Debian 11"},
 				},
-			})
+			}); err != nil {
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+				return
+			}
 		case "/v4/linode/instances":
 			if r.Method == "POST" {
 				// Handle instance creation
 				var createOpts linodego.InstanceCreateOptions
-				json.NewDecoder(r.Body).Decode(&createOpts)
+				if err := json.NewDecoder(r.Body).Decode(&createOpts); err != nil {
+					http.Error(w, err.Error(), http.StatusBadRequest)
+					return
+				}
 
 				instance := linodego.Instance{
 					ID:     123,
@@ -86,27 +95,36 @@ func setupMockLinodeAPI(t *testing.T) (*httptest.Server, *LinodeProvider) {
 					Status: linodego.InstanceRunning,
 				}
 
-				json.NewEncoder(w).Encode(instance)
+				if err := json.NewEncoder(w).Encode(instance); err != nil {
+					http.Error(w, err.Error(), http.StatusInternalServerError)
+					return
+				}
 			} else {
 				// Handle instance listing
-				json.NewEncoder(w).Encode(linodego.InstancesPagedResponse{
+				if err := json.NewEncoder(w).Encode(linodego.InstancesPagedResponse{
 					Data: []linodego.Instance{
 						{ID: 123, Label: "talos-node-0", Status: linodego.InstanceRunning, Region: "us-east", Tags: []string{"talos-autoextender"}},
 						{ID: 124, Label: "talos-node-1", Status: linodego.InstanceRunning, Region: "us-east", Tags: []string{"talos-autoextender"}},
 						{ID: 125, Label: "talos-node-2", Status: linodego.InstanceProvisioning, Region: "us-east", Tags: []string{"talos-autoextender"}},
 					},
-				})
+				}); err != nil {
+					http.Error(w, err.Error(), http.StatusInternalServerError)
+					return
+				}
 			}
 		case "/v4/linode/instances/123":
 			if r.Method == "DELETE" {
 				w.WriteHeader(http.StatusNoContent)
 			} else {
-				json.NewEncoder(w).Encode(linodego.Instance{
+				if err := json.NewEncoder(w).Encode(linodego.Instance{
 					ID:     123,
 					Label:  "talos-node-0",
 					Status: linodego.InstanceRunning,
 					Region: "us-east",
-				})
+				}); err != nil {
+					http.Error(w, err.Error(), http.StatusInternalServerError)
+					return
+				}
 			}
 		default:
 			http.Error(w, "Not found", http.StatusNotFound)
