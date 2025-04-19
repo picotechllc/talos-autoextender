@@ -77,15 +77,16 @@ func TestClusterSpecValidation(t *testing.T) {
 	}
 }
 
-func TestClusterCreation(t *testing.T) {
+func TestClusterScaling(t *testing.T) {
 	tests := []struct {
 		name        string
 		provider    Provider
-		spec        ClusterSpec
+		initialSpec ClusterSpec
+		targetSpec  ClusterSpec
 		shouldError bool
 	}{
 		{
-			name: "valid linode cluster",
+			name: "scale up cluster nodes",
 			provider: Provider{
 				Name:   "linode",
 				Region: "us-east",
@@ -93,9 +94,56 @@ func TestClusterCreation(t *testing.T) {
 					"api_token": "test-token",
 				},
 			},
-			spec: ClusterSpec{
+			initialSpec: ClusterSpec{
 				NodeCount:    3,
 				NodeSize:    "g6-standard-2",
+				TalosVersion: "v1.6.0",
+			},
+			targetSpec: ClusterSpec{
+				NodeCount:    5,
+				NodeSize:    "g6-standard-2",
+				TalosVersion: "v1.6.0",
+			},
+			shouldError: false,
+		},
+		{
+			name: "scale down cluster nodes",
+			provider: Provider{
+				Name:   "linode",
+				Region: "us-east",
+				Credentials: map[string]string{
+					"api_token": "test-token",
+				},
+			},
+			initialSpec: ClusterSpec{
+				NodeCount:    5,
+				NodeSize:    "g6-standard-2",
+				TalosVersion: "v1.6.0",
+			},
+			targetSpec: ClusterSpec{
+				NodeCount:    3,
+				NodeSize:    "g6-standard-2",
+				TalosVersion: "v1.6.0",
+			},
+			shouldError: false,
+		},
+		{
+			name: "upgrade node size",
+			provider: Provider{
+				Name:   "linode",
+				Region: "us-east",
+				Credentials: map[string]string{
+					"api_token": "test-token",
+				},
+			},
+			initialSpec: ClusterSpec{
+				NodeCount:    3,
+				NodeSize:    "g6-standard-2",
+				TalosVersion: "v1.6.0",
+			},
+			targetSpec: ClusterSpec{
+				NodeCount:    3,
+				NodeSize:    "g6-standard-4",
 				TalosVersion: "v1.6.0",
 			},
 			shouldError: false,
@@ -110,9 +158,98 @@ func TestClusterCreation(t *testing.T) {
 				t.Fatalf("Failed to create provider: %v", err)
 			}
 
-			err = provider.CreateCluster(tt.spec)
+			err = provider.CreateCluster(tt.initialSpec)
+			if err != nil {
+				t.Fatalf("Failed to create initial cluster: %v", err)
+			}
+
+			err = provider.UpdateCluster(tt.targetSpec)
 			if (err != nil) != tt.shouldError {
-				t.Errorf("CreateCluster() error = %v, shouldError %v", err, tt.shouldError)
+				t.Errorf("UpdateCluster() error = %v, shouldError %v", err, tt.shouldError)
+			}
+
+			status, err := provider.GetClusterStatus("test-cluster")
+			if err != nil {
+				t.Fatalf("Failed to get cluster status: %v", err)
+			}
+
+			if status.NodeCount != tt.targetSpec.NodeCount {
+				t.Errorf("Expected node count %d, got %d", tt.targetSpec.NodeCount, status.NodeCount)
+			}
+		})
+	}
+}
+
+func TestClusterLifecycle(t *testing.T) {
+	tests := []struct {
+		name        string
+		provider    Provider
+		spec        ClusterSpec
+		operations  []string
+		shouldError bool
+	}{
+		{
+			name: "full cluster lifecycle",
+			provider: Provider{
+				Name:   "linode",
+				Region: "us-east",
+				Credentials: map[string]string{
+					"api_token": "test-token",
+				},
+			},
+			spec: ClusterSpec{
+				NodeCount:    3,
+				NodeSize:    "g6-standard-2",
+				TalosVersion: "v1.6.0",
+			},
+			operations:  []string{"create", "scale", "migrate", "delete"},
+			shouldError: false,
+		},
+		{
+			name: "cluster creation with invalid credentials",
+			provider: Provider{
+				Name:   "linode",
+				Region: "us-east",
+				Credentials: map[string]string{
+					"api_token": "",
+				},
+			},
+			spec: ClusterSpec{
+				NodeCount:    3,
+				NodeSize:    "g6-standard-2",
+				TalosVersion: "v1.6.0",
+			},
+			operations:  []string{"create"},
+			shouldError: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			factory := NewProviderFactory()
+			provider, err := factory.CreateProvider(tt.provider)
+			if err != nil {
+				t.Fatalf("Failed to create provider: %v", err)
+			}
+
+			for _, op := range tt.operations {
+				var err error
+				switch op {
+				case "create":
+					err = provider.CreateCluster(tt.spec)
+				case "scale":
+					newSpec := tt.spec
+					newSpec.NodeCount = 5
+					err = provider.UpdateCluster(newSpec)
+				case "migrate":
+					err = provider.MigrateCluster("us-west")
+				case "delete":
+					err = provider.DeleteCluster("test-cluster")
+				}
+				
+				if (err != nil) != tt.shouldError {
+					t.Errorf("%s operation error = %v, shouldError %v", op, err, tt.shouldError)
+				}
 			}
 		})
 	}
