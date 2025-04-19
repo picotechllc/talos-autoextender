@@ -51,7 +51,7 @@ This project aims to create a robust, automated solution for bridging a **home-b
 
 4. **Ingress and DNS**
    - Deploy and configure ingress controllers (e.g., Cilium, NGINX) on cloud clusters.
-   - Automate DNS record management for a user-controlled domain (e.g., `brooktrails.us` or subdomain).
+   - Automate DNS record management for a user-controlled domain (e.g., `home-cluster.net` or subdomain).
    - Support blue/green or weighted DNS for seamless migration between cloud clusters.
    - Terminate TLS at the cloud edge using Let's Encrypt or similar.
 
@@ -82,28 +82,30 @@ This project aims to create a robust, automated solution for bridging a **home-b
 
 ## Architecture Overview
 
+```mermaid
 graph TD
-subgraph Home Cluster
-H1[Talos Cluster]
-D1[KubeSpan Discovery/Headscale]
-end
+    subgraph "Home Cluster"
+        H1[Talos Cluster]
+        D1[KubeSpan Discovery/Headscale]
+    end
 
-subgraph Cloud Cluster(s)
-C1[Talos Cluster (Akamai/Linode)]
-C2[Talos Cluster (Hetzner)]
-IC[Ingress Controller]
-DNS[ExternalDNS]
-end
+    subgraph "Cloud Cluster(s)"
+        C1[Talos Cluster - Akamai/Linode]
+        C2[Talos Cluster - Hetzner]
+        IC[Ingress Controller]
+        DNS[ExternalDNS]
+    end
 
-H1 <--> D1
-H1 <--> C1
-H1 <--> C2
-C1 <--> IC
-C2 <--> IC
-IC <--> DNS
-DNS --> Domain[(brooktrails.us)]
+    H1 <--> D1
+    H1 <--> C1
+    H1 <--> C2
+    C1 <--> IC
+    C2 <--> IC
+    IC <--> DNS
+    DNS --> Domain[(home-cluster.net)]
+```
 
-text
+The diagram illustrates how the home-based Talos cluster connects to cloud-based clusters (on Linode/Akamai and Hetzner) through KubeSpan, with the cloud clusters handling ingress and DNS management to expose home services.
 
 ---
 
@@ -142,6 +144,3 @@ _(To be filled as the project progresses; will include prerequisites, installati
 
 MIT
 
----
-
-**End of README**
