@@ -94,9 +94,7 @@ graph TD
     end
 
     subgraph "Cloud Cluster 1"
-        C1N1[Talos Node 1]
-        C1N2[Talos Node 2]
-        C1N3[Talos Node 3]
+        C1[Talos Control Plane]
         KS2[KubeSpan Connector]
         IC[Ingress Controller]
         HF[Home Service Forwarder]
@@ -114,22 +112,17 @@ graph TD
     H1 <--> CM
 
     %% Cloud cluster internal connections
-    C1N1 <--> C1N2
-    C1N2 <--> C1N3
-    C1N3 <--> C1N1
-    C1N1 <--> KS2
-    C1N2 <--> KS2
-    C1N3 <--> KS2
-    C1N1 <--> IC
-    C1N2 <--> IC
-    C1N3 <--> IC
+    C1 <--> KS2
+    C1 <--> IC
+    C1 <--> HF
+    C1 <--> ED
     IC <--> HF
     ED <--> DNS
 
     %% Cross-cluster connections
     KS1 <--> KS2
-    CP -- "provisions" --> C1N1
-    CM -- "monitors" --> C1N1
+    CP -- "provisions" --> C1
+    CM -- "monitors" --> C1
     
     %% External connections
     Internet <--> IC
@@ -144,7 +137,7 @@ This refined architecture shows:
    - Cloud Monitor for checking health and availability of cloud resources
 
 2. **Cloud Cluster**: Each cloud cluster (shown is Cloud Cluster 1) consists of:
-   - Three Talos nodes forming a Kubernetes cluster
+   - A single "Talos Control Plane" object
    - KubeSpan Connector for secure networking with the home cluster
    - Ingress Controller handling external traffic
    - Home Service Forwarder routing traffic to the appropriate services in the home cluster
